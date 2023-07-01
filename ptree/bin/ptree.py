@@ -27,25 +27,25 @@ class PtreeCommand(StreamingCommand):
     CreateTime_name = Option(
     doc='''
     **Syntax:** **child=***<fieldname>*
-    **Description:** Name of the field that holds the child value''',
+    **Description:** Name of the field that holds the process creation time value''',
     require=True, validate=validators.Fieldname())
 
     CommandLine_name = Option(
     doc='''
     **Syntax:** **child=***<fieldname>*
-    **Description:** Name of the field that holds the child value''',
+    **Description:** Name of the field that holds the command line value''',
     require=True, validate=validators.Fieldname())
 
     Process_name = Option(
     doc='''
     **Syntax:** **child=***<fieldname>*
-    **Description:** Name of the field that holds the child value''',
+    **Description:** Name of the field that holds the process name value''',
     require=True, validate=validators.Fieldname())
 
     CreateTime_name_format = Option(
     doc='''
     **Syntax:** **child=***<fieldname>*
-    **Description:** Name of the field that holds the child value''',
+    **Description:** Name of the field that holds the date fromat value''',
     require=True, validate=None)
 
 
