@@ -16,7 +16,8 @@ Run xfreerdp :
 ```
 index=* source="processes.csv" 
 | ptree child_name=ProcessId parent_name=ParentProcessId CreateTime_name=CreationDate CommandLine_name=CommandLine Process_name=ProcessName CreateTime_name_format="%Y-%m-%d %H:%M:%S.%f"
-| table tree```
+| table tree
+```
 
 ## Example
 ![Alt text](/assets/screenshot.png)
