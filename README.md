@@ -10,9 +10,7 @@ Algorithm stolen here: https://stackoverflow.com/questions/16395207/create-a-pro
 Copy ptree repo to your splunk or install .spl file.
 
 ## Usage
-Currently, there is an issue with the VBox addition Guest Additions, so the best way to reach the VM is rdp.
 
-Run xfreerdp :
 ```
 index=* source="processes.csv" 
 | ptree child_name=ProcessId parent_name=ParentProcessId CreateTime_name=CreationDate CommandLine_name=CommandLine Process_name=ProcessName CreateTime_name_format="%Y-%m-%d %H:%M:%S.%f"
