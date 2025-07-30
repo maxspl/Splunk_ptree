@@ -64,6 +64,7 @@ Render a full process forest from a CSV/lookup:
 ```spl
 | inputlookup process.csv
 | ptree pid_field=PID ppid_field=PPID path_field=Path cmd_field=CommandLine time_field=CreateTime time_format="%Y-%m-%d %H:%M:%S" truncate_cmd=100
+| table *
 ```
 
 ### 2) Targeted mode (with `root_pid`) — best for event streams
@@ -73,6 +74,7 @@ Render a specific process and descendants:
 ```spl
 ... your search producing 4688-like events ...
 | ptree pid_field=pid ppid_field=ppid path_field=process cmd_field=cmdline time_field=_time root_pid=4321 root_path="C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" truncate_cmd=100
+| table *
 ```
 
 ### 2-bis) Targeted mode (with `root_pid` and `root_path`) — best for event streams
@@ -82,6 +84,7 @@ Render a specific process and descendants:
 ```spl
 ... your search producing 4688-like events ...
 | ptree pid_field=pid ppid_field=ppid path_field=process cmd_field=cmdline time_field=_time root_pid=4321 root_path="C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" truncate_cmd=100
+| table *
 ```
 
 ### 3) Show as a table instead of a single big string
@@ -89,6 +92,7 @@ Render a specific process and descendants:
 ```spl
 | inputlookup process.csv
 | ptree pid_field=PID ppid_field=PPID path_field=Path cmd_field=CommandLine mode=table
+| table *
 ```
 
 `mode=table` emits one event per printed line with:

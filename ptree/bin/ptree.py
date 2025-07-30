@@ -47,6 +47,38 @@ except ImportError:
     sys.path.insert(0, os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "lib")))
     from splunklib.searchcommands import dispatch, EventingCommand, Configuration, Option, validators
 
+LOG_PATH = "/tmp/log.txt"
+
+import logging
+from logging.handlers import RotatingFileHandler
+
+def _get_ptree_logger():
+    """
+    Return a module-level logger that writes DEBUG logs to /tmp/log.txt.
+    Uses a RotatingFileHandler to avoid unbounded growth.
+    Guarded so we don't attach duplicate handlers on repeated imports.
+    """
+    logger = logging.getLogger("ptree")
+    if logger.handlers:
+        # Already configured in this interpreter
+        return logger
+
+    logger.setLevel(logging.DEBUG)
+    fh = logging.FileHandler(LOG_PATH)
+        
+
+    fmt = logging.Formatter(
+        "%(asctime)s %(process)d %(levelname)s %(name)s: %(message)s"
+    )
+    fh.setFormatter(fmt)
+    logger.addHandler(fh)
+    # Prevent double logging via root
+    logger.propagate = False
+    return logger
+
+log = _get_ptree_logger()
+
+
 def _to_str(v):
     """
     Safely coerce an arbitrary value to a string (Py2/3 compatible).
@@ -276,9 +308,16 @@ class PtreeCommand(EventingCommand):
 
         # Cache events and relationships
         rows = list(records)
+        log.debug(f"MSP events : {len(rows)}")
         by_pid = {}
         children = defaultdict(list)
         parent_hints = {}  # PID -> parent path (from child's parent_process_path)
+
+        # --- Target selection flags (strict pid+path when both are provided) ---
+        target_pid = _to_str(self.root_pid).strip()
+        expected_path = _to_str(self.root_path).strip()
+        forest_mode = (target_pid == "")
+        strict_root = (not forest_mode and expected_path != "")
 
         # --- Build indexes ---
         for r in rows:
@@ -290,6 +329,11 @@ class PtreeCommand(EventingCommand):
             t_display, t_sort = _parse_time(t_raw, self.time_format)
 
             if not pid:
+                continue
+
+            # Strict targeting: if both root_pid and root_path were provided,
+            # ignore records for that PID whose path doesn't match exactly.
+            if strict_root and pid == target_pid and path != expected_path:
                 continue
 
             # Keep the earliest event per PID to stabilize trees
@@ -375,9 +419,6 @@ class PtreeCommand(EventingCommand):
                 dfs(child, depth + 1, prefix + ("    " if last else "│   "))
 
         # --- Mode selection: forest vs targeted ---
-        target_pid = _to_str(self.root_pid).strip()
-        forest_mode = (target_pid == "")
-
         if forest_mode:
             # root_path does not make sense without a PID
             if self.root_path:
@@ -418,18 +459,15 @@ class PtreeCommand(EventingCommand):
                 }
             return
 
-        # --- Targeted mode (legacy behavior) ---
+        # --- Targeted mode (strict if root_path given) ---
+        if strict_root and (target_pid not in by_pid or by_pid[target_pid].get("path") != expected_path):
+            yield {"_error": "Target PID {} with path {} not found in events."
+                             .format(target_pid or "<empty>", expected_path or "<empty>")}
+            return
+
         if target_pid not in by_pid:
             yield {"_error": "Target PID {} not found in events.".format(target_pid or "<empty>")}
             return
-
-        # Optional sanity log if a specific root path was expected
-        if self.root_path:
-            expected = self.root_path.strip()
-            meta_t = by_pid.get(target_pid)
-            if meta_t and meta_t.get("path") and meta_t["path"] != expected:
-                self.logger.info("Target PID %s path %s differs from expected %s",
-                                 target_pid, meta_t.get("path"), expected)
 
         # Build ancestor chain: top-most -> ... -> direct parent of target
         ancestors = []
